@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Partitionnement et formatage de disque — guide</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --card: #131a33;
+      --ink: #e9eefb;
+      --muted: #b9c3e6;
+      --accent: #6ea8fe;
+      --accent-2: #a78bfa;
+      --ok: #4ade80;
+      --warn: #fbbf24;
+      --danger: #f87171;
+      --code-bg: #0e142b;
+      --border: #233055;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--ink);
+      background: linear-gradient(180deg, #070b18, #0b1020);
+      letter-spacing: .1px;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .layout {
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      gap: 0;
+      min-height: 100vh;
+    }
+    nav {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      padding: 24px 18px;
+      background: rgba(10, 14, 33, 0.7);
+      border-right: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 14px;
+    }
+    .brand .logo {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 0 32px rgba(110,168,254, .35);
+    }
+    .brand h1 { font-size: 18px; margin: 0; letter-spacing: .4px; }
+    .desc { font-size: 13px; color: var(--muted); margin: 0 0 16px; }
+    .toc { list-style: none; padding: 0; margin: 10px 0 24px; }
+    .toc li { margin: 6px 0; }
+    .toc a {
+      display: block;
+      padding: 9px 10px;
+      border-radius: 10px;
+      color: var(--ink);
+      border: 1px solid transparent;
+    }
+    .toc a:hover { background: #0e1630; border-color: var(--border); }
+    .toc .sub { padding-left: 8px; margin: 4px 0 10px; }
+    .toc .sub a { font-size: 13px; color: var(--muted); }
+    main {
+      padding: 28px 24px 80px;
+    }
+    .section {
+      max-width: 1000px;
+      margin: 0 auto 28px;
+      background: linear-gradient(180deg, #12193a, #101737);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow:
+        0 10px 50px rgba(20, 30, 70, .5),
+        inset 0 1px 0 rgba(255,255,255,.04);
+      overflow: hidden;
+    }
+    .section header {
+      padding: 22px 22px 0;
+    }
+    .section h2 {
+      font-size: 22px; margin: 0 0 10px; letter-spacing: .3px;
+    }
+    .section .meta {
+      font-size: 13px; color: var(--muted); margin-bottom: 12px;
+    }
+    .content { padding: 0 22px 22px; font-size: 16px; line-height: 1.65; }
+    .content p { margin: 12px 0; }
+    .note, .warn, .ok {
+      padding: 12px 14px; border-radius: 12px; margin: 12px 0;
+      border: 1px solid var(--border);
+      background: #0e1630;
+      font-size: 14px; color: var(--muted);
+    }
+    .warn { border-color: rgba(251,191,36,.4); background: rgba(251,191,36,.05); color: #fde68a; }
+.ok {
+  border-color: rgba(74,222,128,.35);
+  background: rgba(74,222,128,.06);
+  color: #bbf7d0;
+
+  /* conserve les retours à la ligne et les espaces, tout en respectant le cadre */
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+    code, pre, kbd {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 14px;
+    }
+    kbd {
+      padding: 2px 6px; border: 1px solid var(--border); border-bottom-width: 2px;
+      border-radius: 6px; background: #0e142b; color: var(--ink);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    pre {
+      margin: 12px 0; padding: 14px 14px;
+      background: var(--code-bg);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      overflow: auto;
+    }
+    .grid {
+      display: grid; gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+    table {
+      width: 100%; border-collapse: collapse; font-size: 14px; margin: 8px 0 4px;
+      border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+    }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    th { text-align: left; background: rgba(255,255,255,.03); }
+    tr:last-child td { border-bottom: none; }
+    .footer {
+      max-width: 1000px; margin: 28px auto; text-align: center;
+      color: var(--muted); font-size: 13px;
+    }
+    .chip { display: inline-flex; gap: 6px; padding: 6px 10px; background: #0e1630; border: 1px solid var(--border); border-radius: 999px; font-size: 12px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav>
+      <div class="brand">
+        <div class="logo"></div>
+        <h1>Guide : partitions & formatage</h1>
+      </div>
+      <p class="desc">Menu rapide — cliquez sur une section :</p>
+      <ul class="toc">
+        <li><a href="#intro">1. Introduction</a></li>
+        <li><a href="#file-disk">2. Fichier-partition : /dev/zero, /dev/random</a>
+          <ul class="toc sub">
+            <li><a href="#zero">/dev/zero</a></li>
+            <li><a href="#random">/dev/random et /dev/urandom</a></li>
+            <li><a href="#dd-img">Création d'image dd</a></li>
+          </ul>
+        </li>
+        <li><a href="#mbr">3. MBR : archivage et visualisation</a></li>
+        <li><a href="#fdisk-loop">4. fdisk sur fichier / périphérique en boucle</a></li>
+        <li><a href="#scheme">5. Schémas de partitionnement (bureau/serveur/etc.)</a></li>
+        <li><a href="#fdisk-phys">6. fdisk : disque physique/QEMU</a></li>
+        <li><a href="#format">7. Formatage des systèmes de fichiers</a></li>
+        <li><a href="#mounting">8. Montage : /, /boot, /home, swap</a></li>
+      </ul>
+      <div class="chip">Fait pour les labs rapides ✨</div>
+    </nav>
+
+    <main>
+      <!-- Intro -->
+      <section id="intro" class="section">
+        <header>
+          <h2>1. Introduction</h2>
+          <div class="meta">Démarrage depuis une image Linux (USB, autre portable, QEMU)</div>
+        </header>
+        <div class="content">
+          <p><strong>Partitionnement et formatage de disque – guide pour débutants.</strong></p>
+
+<p>Si vous vous êtes déjà demandé ce que sont les partitions et le formatage, ce texte est pour vous. Nous allons le faire étape par étape et <em>sans risque</em> — pour commencer, sur un fichier. Sous Linux, chaque périphérique est un fichier, donc un fichier peut aussi être un disque ;).</p>
+
+<p>Imaginez que votre disque dur (ou clé USB) est une immense armoire à deux portes. Vous ouvrez l'armoire et regardez - vous avez plein d'espace pour ranger des choses – photos, jeux, musique, films, documents... Seulement, il n'y a pas une seule étagère, pas de compartiment... Il n'y a rien, juste un grand vide.</p>
+
+<p>Les partitions, ce sont justement les étagères dans cette armoire. Diviser cette grande armoire en plusieurs espaces plus petits aide à maintenir l'ordre. Tout est toujours dans la même armoire, mais grâce à la division, il est plus facile de tout organiser et gérer.</p>
+
+<p><strong>Pourquoi faire cela ?</strong></p>
+
+<ul>
+  <li><strong>Ordre</strong> – Vous pouvez avoir une partition uniquement pour le système (ou plusieurs pour plusieurs systèmes), et une autre pour vos fichiers. Si le système tombe en panne, vos fichiers sont plus en sécurité, vous réinstallez le système et les fichiers restent dans une zone sûre du disque.</li>
+
+  <li><strong>Plusieurs systèmes</strong> – Il est possible d'installer différents systèmes d'exploitation sur un même ordinateur
+  (par ex. <a href="https://www.microsoft.com/windows">Windows</a>,
+  <a href="https://www.kernel.org/">Linux</a>,
+  <a href="https://reactos.org/">ReactOS</a>,
+  <a href="https://www.oracle.com/solaris/">Solaris</a>,
+  <a href="https://www.qnx.com/">QNX</a>,
+  <a href="https://www.freebsd.org/">BSD</a>,
+  <a href="http://www.freedos.org/">DOS</a>,
+  <a href="https://www.android.com/">Android</a> et bien d'autres),
+  chacun dans son « tiroir ».</li>
+
+  <li><strong>Sécurité</strong> – Si quelque chose se corrompt sur une partition, les autres peuvent continuer à fonctionner.</li>
+
+  <li><strong>Sauvegardes plus faciles</strong> – Vous pouvez sauvegarder uniquement une partition sélectionnée, au lieu de tout le disque.</li>
+</ul></p>
+      </div>
+      </section>
+
+      <!-- File as disk -->
+      <section id="file-disk" class="section">
+        <header>
+          <h2>2. Création d'un fichier-partition</h2>
+          <div class="meta">Nous simulons un disque comme un fichier ordinaire</div>
+        </header>
+        <div class="content">
+          <p>Un fichier-partition est un fichier ordinaire qui se comporte comme un disque. Ensuite, il peut être attaché comme un périphérique en boucle et partitionné avec des outils comme <code>fdisk</code>.</p>
+
+          <h3 id="zero">/dev/zero</h3>
+          <p><code>/dev/zero</code> C'est un "fichier-périphérique étrange" dans l'ordinateur, duquel "sortent" uniquement des zéros. Il fournit un flux d'octets 0x00, idéal pour l'initialisation et la création d'images de disques vides :</p>
+<pre><code>dd if=/dev/zero of=fichier.img bs=1M count=100
+# =&gt; fichier.img fait 100 MB, rempli de zéros
+# if  = source (ici : uniquement des zéros)
+# of  = destination (fichier image)
+# bs  = taille de bloc
+# count = nombre de blocs (ici 1024 → env. 1 GiB)</code></pre>
+          <p>L'extension <code>.img</code> est <em>seulement</em> informative — Linux ne "reconnaît" pas les fichiers par leurs extensions.</p>
+          <p>Brève explication de ce que fait la commande dd. En bref - dd est un programme qui lit d'un endroit et écrit dans un autre. Donc dans l'exemple ci-dessus, <b>dd</b> lit depuis le périphérique <b>/dev/zero</b> et écrit dans le fichier <b>fichier.img</b>.
+          <p>Mais puisque nous parlons de "fichiers-périphériques étranges", il y a aussi le périphérique <b>/dev/urandom</b>. Ce périphérique, comme son nom l'indique, peut être utilisé pour générer des caractères aléatoires et est utile pour créer des images ou remplir des disques chiffrés.</p>
+<pre><code>dd if=/dev/urandom of=fichier.img bs=1M count=100
+# =&gt; fichier.img fait 100 MB, rempli de données aléatoires
+# if  = source (ici : données aléatoires)
+# of  = destination (fichier image)
+# bs  = taille de bloc
+# count = nombre de blocs (ici 1024 → env. 1 GiB)</code></pre>
+
+        </div>
+      </section>
+
+      <!-- MBR backup -->
+      <section id="mbr" class="section">
+        <header>
+          <h2>3. Archivage et visualisation du MBR</h2>
+          <div class="meta">Opérations sur l'image de fichier</div>
+        </header>
+        <div class="content">
+<pre><code># Supposons que l'image est fichier_disque.img (100 MB)
+dd if=/dev/zero of=fichier_disque.img bs=1M count=100
+
+# Sauvegarde le premier secteur (MBR: 512 octets) dans un fichier
+dd if=fichier_disque.img of=mbr.bin bs=512 count=1
+
+# Alternative via head/cat
+head -c 512 fichier_disque.img &gt; mbr.bin
+# (ou) cat fichier_disque.img | head -c 512 &gt; mbr.bin
+
+# Visualisation hexadécimale
+hexdump -C mbr.bin
+xxd mbr.bin
+
+# Restauration du MBR
+dd if=mbr.bin of=fichier_disque.img bs=512 count=1</code></pre>
+          <p class="warn"><strong>Attention :</strong> Le MBR a du sens principalement sur les disques avec étiquette DOS/MBR. Avec GPT, les premiers secteurs contiennent le Protective MBR et les en-têtes GPT.</p>
+        </div>
+      </section>
+
+      <!-- fdisk on loop -->
+      <section id="fdisk-loop" class="section">
+        <header>
+          <h2>4. fdisk sur fichier (périphérique en boucle)</h2>
+          <div class="meta">Losetup + fdisk -l</div>
+        </header>
+        <div class="content">
+<pre><code># Simple : lecture de la structure sans losetup
+fdisk -l ./fichier_disque.img
+
+# Ou : attache le fichier comme /dev/loop0
+sudo losetup /dev/loop0 fichier_disque.img
+fdisk -l /dev/loop0
+sudo losetup -d /dev/loop0</code></pre>
+
+          <p>Partitionnement interactif du fichier directement :</p>
+<pre><code>sudo fdisk ./fichier_disque.img
+# n → nouvelle partition
+# p → partition primaire (MBR) / GPT sans division étendue
+# w → écrit les changements</code></pre>
+          <p class="note">Fdisk comprend les tailles <code>+512M</code>, <code>+40G</code>, <code>+1T</code> etc.</p>
+        </div>
+      </section>
+
+      <!-- schemes -->
+      <section id="scheme" class="section">
+        <header>
+          <h2>5. Schémas de partitionnement optimaux</h2>
+          <div class="meta">Bureau, serveur, IoT, chiffrement, RAID/LVM</div>
+        </header>
+        <div class="content">
+          <div class="grid">
+            <div>
+              <h4>Bureau</h4>
+              <table>
+                <thead><tr><th>Partition</th><th>Taille</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td>/ (racine)</td><td>~50&nbsp;GB</td><td>Système et applications</td></tr>
+                  <tr><td>/home</td><td>Le reste</td><td>Données utilisateur</td></tr>
+                  <tr><td>swap</td><td>~8&nbsp;GB</td><td>Utile lors de la compilation (Gentoo)</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <h4>Serveur</h4>
+              <table>
+                <thead><tr><th>Partition</th><th>Taille</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td>/</td><td>80&nbsp;GB</td><td>Système</td></tr>
+                  <tr><td>/var</td><td>50–100&nbsp;GB</td><td>Logs, bases de données</td></tr>
+                  <tr><td>/tmp</td><td>5–10&nbsp;GB</td><td>Fichiers temporaires</td></tr>
+                  <tr><td>/boot</td><td>1–2&nbsp;GB</td><td>Fichiers de démarrage</td></tr>
+                  <tr><td>/srv</td><td>Le reste</td><td>Données des services</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <h4>Système embarqué</h4>
+              <table>
+                <thead><tr><th>Partition</th><th>Taille</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td>/boot</td><td>256&nbsp;MB–1&nbsp;GB</td><td>Démarrage</td></tr>
+                  <tr><td>/</td><td>1–4&nbsp;GB</td><td>Système</td></tr>
+                  <tr><td>/var</td><td>500&nbsp;MB–2&nbsp;GB</td><td>Logs</td></tr>
+                  <tr><td>/data</td><td>Le reste</td><td>Données</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <h4>Chiffré (LUKS)</h4>
+              <table>
+                <thead><tr><th>Partition</th><th>Taille</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td>/boot</td><td>500&nbsp;MB–1&nbsp;GB</td><td>Non chiffrée</td></tr>
+                  <tr><td>conteneur LUKS</td><td>Le reste</td><td>À l'intérieur : LVM/partitions</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <h4>RAID/LVM</h4>
+              <table>
+                <thead><tr><th>Partition</th><th>Taille</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td>/</td><td>~50&nbsp;GB</td><td>Système</td></tr>
+                  <tr><td>/var</td><td>20–100&nbsp;GB</td><td>Logs/bases de données</td></tr>
+                  <tr><td>/home</td><td>Le reste</td><td>Données</td></tr>
+                  <tr><td>/data</td><td>RAID 5/10</td><td>Pour serveur de fichiers</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- fdisk physical/QEMU -->
+      <section id="fdisk-phys" class="section">
+        <header>
+          <h2>6. fdisk : disque physique / QEMU</h2>
+          <div class="meta">GPT, création de partitions, types GPT</div>
+        </header>
+        <div class="content">
+<pre><code># Détecter les disques
+fdisk -l
+
+# Par exemple :
+sudo fdisk /dev/sda     # si vous voulez partitionner un disque physique en Serial
+sudo fdisk /dev/nvme0n1 # si vous voulez partitionner un disque physique en PCIe-NVMe
+sudo fdisk /dev/vda     # si vous voulez partitionner un disque virtuel dans QEMU c'est souvent /dev/vda
+
+# Dans le menu fdisk :
+m   # aide
+g   # crée une nouvelle table GPT
+n   # nouvelle partition
+t   # change le type de partition (ex. EFI / swap / home)
+p   # aperçu
+w   # écrit
+
+<p class="ok"><b><a href="https://fr.wikipedia.org/wiki/PCI_Express" target="_blank">PCIe (Peripheral Component Interconnect Express)</a></b> est un bus (une sorte « d'autoroute » dans l'ordinateur) par lequel différents périphériques communiquent avec le processeur. Il est très rapide, utilisé aussi pour les cartes graphiques, les cartes réseau et les disques. Il supporte plusieurs « voies » (x1, x4, x8, x16) – plus il y en a, plus la bande passante est grande.
+
+<b><a href="https://fr.wikipedia.org/wiki/NVM_Express" target="_blank">NVMe (Non-Volatile Memory Express)</a></b> est un protocole (langage de communication) conçu
+spécialement pour les mémoires non volatiles (<a href="https://fr.wikipedia.org/wiki/M%C3%A9moire_flash" target="_blank">flash</a>, <a href="https://fr.wikipedia.org/wiki/SSD" target="_blank">SSD</a>).
+Il permet d'utiliser pleinement la vitesse des disques SSD, il fonctionne sur le bus PCIe (d'où l'association dans le nom).
+
+Imaginez PCIe comme une voie ferrée mais à la vitesse d'un avion, menant au processeur. NVMe est un train super rapide créé spécialement pour cette ligne, pour transporter les données le plus vite possible. Grâce à cela, les disques NVMe sont plusieurs dizaines de fois plus rapides que les anciens disques SATA (<a href="https://fr.wikipedia.org/wiki/Disque_dur" target="_blank">HDD</a> ou <a href="https://fr.wikipedia.org/wiki/SSD" target="_blank">SSD</a>), car ils évitent les limitations des anciens protocoles (comme <a href="https://fr.wikipedia.org/wiki/Advanced_Host_Controller_Interface" target="_blank">AHCI</a>).</p>
+          <p>Exemple de résultat après création de 4 partitions dans le fichier arch.img (EFI, swap, root, home) :</p>
+<pre><code>Périphérique    Début      Fin   Secteurs  Taille Type
+arch.img1       2048   2099199   2097152    1G Système EFI
+arch.img2    2099200  18876415  16777216    8G Linux swap
+arch.img3   18876416 102762495  83886080   40G Système de fichiers Linux
+arch.img4  102762496 104855551   2093056 1022M Système de fichiers Linux</code></pre>
+
+          <p>Changement des types de partition GPT (raccourcis intégrés dans <code>fdisk</code>) :</p>
+<pre><code>t           # changement de type
+l           # liste des types (entre autres "uefi", "swap", "home", "linux")
+# choisir : 1 → Système EFI, 19 → Linux swap, 42 → Linux home (si vous voulez)
+</code></pre>
+
+          <p class="ok">Après avoir défini les types et l'option "écrire", c'est-à-dire <kbd>w</kbd>, vous avez une table GPT prête avec EFI et swap corrects.</p>
+        </div>
+      </section>
+
+      <!-- Formatting -->
+      <section id="format" class="section">
+        <header>
+          <h2>7. Formatage des systèmes de fichiers</h2>
+          <div class="meta">ext4, vfat, XFS, Btrfs, NTFS/exFAT, réseaux</div>
+          <p>Imaginez que vous avez déjà une armoire avec des étagères (c'est-à-dire des partitions sur le disque). Mais pour l'instant, ces étagères sont vides et nues. Si vous y jetez les choses n'importe comment, ce sera un grand désordre – les livres se mélangeront aux vêtements, et les petits objets se répandront partout.</p>
+
+<p>Le formatage, c'est préparer ces étagères à l'usage : vous y placez des boîtes, des paniers, des classeurs et vous collez des étiquettes. Ainsi, chaque chose a sa place, et vous savez où chercher.</p>
+<p>Dans l'ordinateur, c'est exactement le rôle du système de fichiers (filesystem). C'est lui qui établit les règles, dont les plus importantes sont :
+<ul>
+<li>comment les fichiers seront nommés (par ex. si le nom peut avoir des espaces, combien de caractères maximum),</li>
+<li>quelle taille peuvent avoir les fichiers (par ex. FAT32 ne gérera pas un fichier de plus de 4 GB),</li>
+<li>comment l'ordinateur trouvera le fichier sur le disque (un peu comme une table des matières dans un livre),</li>
+<li>si les fichiers peuvent être protégés par mot de passe ou si on peut définir différentes permissions pour différentes personnes.</li></p>
+</ul>
+<p>Sans système de fichiers, l'ordinateur ne verrait qu'une suite de zéros et de uns, c'est-à-dire un tas désordonné de choses jetées dans l'armoire. Il n'aurait aucune idée d'où commence votre photo, où se termine un film ou un document.</p>
+
+<p>C'est pourquoi le partitionnement est la division de l'armoire en étagères, et le formatage est le fait de mettre des boîtes et de les étiqueter pour que chaque chose ait sa place et qu'on puisse toujours la retrouver.</p>
+<header>
+          <h4>Swap – espace de stockage supplémentaire pour les "affaires courantes"</h4>
+
+
+<p>Imaginez que votre bureau est comme d'habitude - il n'y a pas de place pour poser la moindre chose.
+Que faire alors ? Au lieu de mettre quelque chose par terre, vous pouvez ranger une partie des choses moins utilisées dans un compartiment de l'armoire.</p>
+
+<p>C'est exactement ce qu'est le swap – un espace supplémentaire sur le disque, que le système utilise comme un "stockage temporaire".</p>
+
+<p>Le swap n'a pas de compartiments ni d'étiquettes comme une étagère normale (filesystem), c'est juste un endroit où on peut ranger quelque chose rapidement, pour avoir plus d'espace sur le bureau, ainsi l'ordinateur n'a pas besoin de "planter" immédiatement quand la RAM est pleine.</p>
+
+<p class="ok">Mais attention : le disque est plus lent que la mémoire RAM, donc utiliser le swap fonctionne, mais ralentit l'ordinateur. C'est comme si vous deviez vous retourner et regarder dans l'armoire pour chaque note, au lieu de simplement regarder le post-it collé sur le bureau.</p>
+
+        </header>
+        <div class="content">
+          <div class="grid">
+            <div>
+              <h4>Natifs (Linux)</h4>
+              <table>
+                <thead><tr><th>FS</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td>ext2</td><td>Sans journal ; systèmes embarqués</td></tr>
+                  <tr><td>ext3</td><td>ext2 + journal</td></tr>
+                  <tr><td>ext4</td><td>Choix par défaut, stable</td></tr>
+                  <tr><td>XFS</td><td>Haute performance, gros fichiers</td></tr>
+                  <tr><td>Btrfs</td><td>Instantanés, sommes de contrôle, sous-volumes</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <h4>Autres systèmes</h4>
+              <table>
+                <thead><tr><th>FS</th><th>Système</th><th>Remarques</th></tr></thead>
+                <tbody>
+                  <tr><td>NTFS</td><td>Windows</td><td><code>ntfs-3g</code> pour l'écriture</td></tr>
+                  <tr><td>exFAT</td><td>Win/macOS</td><td>Supporté dans le noyau</td></tr>
+                  <tr><td>HFS+</td><td>macOS</td><td>Lecture ok, écriture nécessite pilotes</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <h4>Réseau</h4>
+              <table>
+                <thead><tr><th>FS</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td>NFS</td><td>Classique UNIX/Linux</td></tr>
+                  <tr><td>CIFS/SMB</td><td>Windows/Samba</td></tr>
+                  <tr><td>SSHFS</td><td>Répertoire via SSH</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <p>Formatage (exemples) :</p>
+<pre><code># EFI (FAT32)
+mkfs.vfat /dev/sda1   # Crée un système FAT32 sur le périphérique /dev/sda1 ou simplement "formate le disque sda1"
+
+# swap
+mkswap /dev/sda2      # Prépare l'espace mémoire temporaire sur le périphérique /dev/sda2
+
+# root et home (ext4)
+mkfs.ext4 /dev/sda3   # Crée un système de fichiers ext4 sur le périphérique /dev/sda3
+mkfs.ext4 /dev/sda4   # Crée un système de fichiers ext4 sur le périphérique /dev/sda4</code></pre>
+        </div>
+      </section>
+
+      <!-- Mounting -->
+      <section id="mounting" class="section">
+        <header>
+          <h2>8. Montage des partitions</h2>
+          <div class="meta">/, /boot, /home, activation du swap</div>
+        </header>
+        <div class="content">
+          <p>Préparez la racine du nouveau système (ici : <code>/dev/sda3</code>) et attachez le reste :</p>
+<pre><code>
+mount /dev/sda3 /mnt
+
+# Crée les points de montage
+mkdir -p /mnt/boot
+mkdir -p /mnt/home
+
+# Monte /boot et /home
+mount /dev/sda1 /mnt/boot
+mount /dev/sda4 /mnt/home
+
+# Active le swap (si vous avez plus de 8GB de RAM, vous n'avez pas besoin de partition d'échange)
+swapon /dev/sda2
+
+# Vérification
+df -h     # points de montage
+free -h   # mémoire et swap</code></pre>
+
+          <p class="ok">À ce stade, vous êtes prêt à télécharger et décompresser le système de base (par ex. Arch Linux ou Gentoo Stage).</p>
+
+          <div class="note">
+            <strong>Exemples de montage réseau :</strong>
+<pre><code>mount -t ntfs-3g /dev/sdb1 /mnt/windows
+mount -t exfat /dev/sdb1 /mnt/usb
+mount -t vfat  /dev/sdb1 /mnt/usb
+mount -t ext4  /dev/sdb1 /mnt/disque
+
+# CIFS/SMB (partage Windows)
+mount -t cifs -o username=user,password=pass,uid=1000,gid=1000,vers=3.0 //192.168.1.150/partage /mnt/smb
+
+# SSHFS
+sshfs user@192.168.1.200:/home/user/distant /mnt/sshfs
+
+# NFS
+mount -t nfs -o soft,timeo=10,retrans=2 192.168.1.100:/nfs/partage /mnt/nfs
+
+# WebDAV
+mount -t davfs https://exemple.com/webdav /mnt/webdav</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <p class="footer">© Guide — préparé pour les labs rapides. Version hors ligne (fichier HTML unique).</p>
+    </main>
+  </div>
+</body>
+</html>
